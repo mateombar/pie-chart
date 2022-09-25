@@ -28,10 +28,17 @@ async function draw() {
     );
 
   // Scales
-  const populationPie = d3.pie().value((d) => d.value);
+  const populationPie = d3.pie().value((d) => d.value).sort(null);
   const slices = populationPie(dataset);
 
   const arc = d3.arc().outerRadius(radius).innerRadius(0);
+  const arcLabels = d3.arc().outerRadius(radius).innerRadius(200);
+
+  const colors = d3.quantize(d3.interpolateSpectral, dataset.length);
+  const colorScale = d3
+    .scaleOrdinal()
+    .domain(dataset.map((element) => element.name))
+    .range(colors);
 
   // Draw shape
   const arcGroup = ctr
@@ -41,7 +48,41 @@ async function draw() {
       `translate(${dimensions.ctrHeight / 2}, ${dimensions.ctrWidth / 2})`
     );
 
-  arcGroup.selectAll('path').data(slices).join('path').attr('d', arc)
+  arcGroup
+    .selectAll("path")
+    .data(slices)
+    .join("path")
+    .attr("d", arc)
+    .attr("fill", (d) => colorScale(d.data.name));
+
+  const labelsGroup = ctr
+    .append("g")
+    .attr(
+      "transform",
+      `translate(${dimensions.ctrHeight / 2}, ${dimensions.ctrWidth / 2})`
+    )
+    .classed("labels", true);
+
+  labelsGroup
+    .selectAll("text")
+    .data(slices)
+    .join("text")
+    .attr("transform", (d) => `translate(${arcLabels.centroid(d)})`)
+    .call((text) =>
+      text
+        .append("tspan")
+        .style("font-weight", "bold")
+        .attr("y", -4)
+        .text((d) => d.data.name)
+    )
+    .call((text) =>
+      text
+        .filter((d) => d.endAngle - d.startAngle > 0.25)
+        .append("tspan")
+        .attr("y", 9)
+        .attr("x", 0)
+        .text((d) => d.data.value)
+    );
 }
 
 draw();
